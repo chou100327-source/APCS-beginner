@@ -606,9 +606,9 @@ main{height:calc(100vh - 52px); overflow:hidden}
 .cheat-head h2{display:flex; align-items:center; gap:9px; font-size:24px; font-weight:700; letter-spacing:-.02em; margin:0 0 4px}
 .cheat-head .ic{color:var(--brand)}
 .cheat-sub{color:var(--muted); font-size:14px; margin:0 0 16px}
-.cheat-chips{display:flex; flex-wrap:wrap; gap:8px; position:sticky; top:60px; z-index:5;
-  padding:10px; margin:-10px -10px 16px; background:rgba(245,245,247,.82);
-  -webkit-backdrop-filter:saturate(180%) blur(12px); backdrop-filter:saturate(180%) blur(12px); border-radius:14px}
+.cheat-chips{display:flex; flex-wrap:wrap; gap:8px; position:sticky; top:-1px; z-index:5;
+  padding:10px 10px 12px; margin:-10px -10px 16px; background:var(--bg);
+  border-bottom:1px solid var(--line); border-radius:0 0 14px 14px}
 .cheat-chip{font:inherit; font-size:12.5px; font-weight:500; color:var(--ink); background:var(--panel);
   border:1px solid var(--line); border-radius:999px; padding:6px 13px; cursor:pointer;
   transition:background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease), transform .12s var(--ease)}
@@ -649,7 +649,7 @@ main{height:calc(100vh - 52px); overflow:hidden}
 .cheat-item.tip .cheat-t{display:block; margin-bottom:2px; color:#7a5b00}
 .cheat-item.tip p{margin:0; font-size:13px; color:#5c4a1a; line-height:1.6}
 
-.notes-panel{position:sticky; top:60px; background:var(--panel); border:1px solid var(--line);
+.notes-panel{position:sticky; top:14px; background:var(--panel); border:1px solid var(--line);
   border-radius:var(--r); box-shadow:var(--sh); overflow:hidden; display:flex; flex-direction:column; max-height:calc(100vh - 84px)}
 .notes-head{display:flex; align-items:center; gap:8px; padding:13px 16px; font-weight:600; font-size:14px;
   color:var(--brand); background:var(--brand-soft); border-bottom:1px solid var(--line)}
