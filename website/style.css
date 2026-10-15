@@ -68,7 +68,7 @@ header{
 main{height:calc(100vh - 52px); overflow:hidden}
 .tab-panel{display:none; height:100%}
 .tab-panel.active{display:flex; animation:fadeUp .5s var(--ease-out)}
-#tab-home.active,#tab-quiz.active,#tab-judge.active,#tab-viz.active{display:block; overflow:auto}
+#tab-home.active,#tab-quiz.active,#tab-judge.active,#tab-viz.active,#tab-cheat.active{display:block; overflow:auto}
 
 /* ===== 首頁 / 儀表板 ===== */
 .home-body{max-width:1080px; margin:0 auto; padding:34px 24px 80px}
