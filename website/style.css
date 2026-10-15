@@ -712,10 +712,16 @@ main{height:calc(100vh - 52px); overflow:hidden}
   .hero-count .big{font-size:56px}
   .cell{width:38px; height:38px}
   .gcell{width:32px; height:32px}
-  main{height:calc(100vh - 52px)}
+  main{height:calc(100vh - 52px); height:calc(100dvh - 52px)}
+  .tab-panel{-webkit-overflow-scrolling:touch}
   /* 速查・筆記：手機改成單欄，筆記區移到下方、不黏頂 */
-  .cheat-wrap{grid-template-columns:1fr; gap:18px; padding:22px 16px 96px}
-  .cheat-chips{top:0}
+  #tab-cheat.active{overscroll-behavior:contain; touch-action:pan-y}
+  .cheat-wrap{grid-template-columns:1fr; gap:18px; padding:22px 16px 120px}
+  /* 目錄列：手機改成「單行可橫向滑動」，不再換行佔掉大半個畫面，也不黏頂 */
+  .cheat-chips{position:static; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    margin:0 -16px 14px; padding:4px 16px 10px; border:0; border-radius:0; background:transparent}
+  .cheat-chip{flex:none; white-space:nowrap}
+  .cheat-code{touch-action:pan-x pan-y}
   .notes-panel{position:static; max-height:none}
   .notes-list{max-height:60vh}
 }
