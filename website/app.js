@@ -82,7 +82,7 @@ function tagClass(tag) {
 /* 每一天點下去要做什麼：有 p 就開那份教材／練習頁，否則照 go 跳轉（格式見 plan.js 開頭註解） */
 function dayActionInfo(day) {
   if (day.p) {
-    if (day.p.includes("/練習/")) return { icon: "pencil", label: "打開今天的練習頁" };
+    if (day.p.includes("/練習/")) return { icon: "pencil", label: "打開這天的練習頁" };
     return { icon: "book", label: "打開教材" };
   }
   const [kind, arg] = (day.go || "").split(/:(.*)/s);
@@ -124,13 +124,13 @@ function buildHome() {
   const countTxt = d > 0 ? d : d === 0 ? "0" : "—";
   const hero = `
     <div class="hero">
-      <div class="hero-count"><span class="big">${countTxt}</span><span class="lbl">${d >= 0 ? "天後應考" : "已過考試日"}</span></div>
+      <div class="hero-count"><span class="big">${STUDY.days.length}</span><span class="lbl">天學習計畫</span></div>
       <div class="hero-info">
         <h1>APCS 初級 · Python 自學站</h1>
-        <p>考試日 ${STUDY.exam}。只含初級 7 個單元，<b>兩天一組</b>：第 1 天讀觀念、第 2 天做練習頁與實作題；7 個單元讀完後就是總測與錯題重練。每天約 30~40 分鐘。</p>
+        <p>只含初級 7 個單元，<b>兩天一組</b>：第 1 天讀觀念、第 2 天做練習頁與實作題；7 個單元讀完後就是總測與錯題重練。每天約 30~40 分鐘。</p>
         <div class="hero-meta">
           <span class="hero-chip">${ICON("target", 15)} 初級題本</span>
-          <span class="hero-chip">${ICON("calendar", 15)} ${cur ? "本週進度：" + cur : "共 4 週 / 17 天"}</span>
+          <span class="hero-chip">${ICON("calendar", 15)} 共 4 階段 / ${STUDY.days.length} 天</span>
           <span class="hero-chip">${ICON("cap", 15)} 每天約 30~40 分鐘</span>
         </div>
       </div>
@@ -148,26 +148,25 @@ function buildHome() {
     const isCur = wk.id === cur;
     const items = daysOfWeek(wk).map(day => {
       const key = dayKey(day);
-      const isToday = day.d === today;
+      const isToday = false;
       // 當天任務不直接列出來（畫面太雜），改成滑鼠移上去看的提示
       const tip = attrEsc(day.tasks.map(t => "・" + t).join("\n"));
       const a = dayActionInfo(day);
       return `<div class="wk-item day-item ${DONE.has(key) ? "done" : ""} ${isToday ? "is-today" : ""}"
                    data-path="${key}" data-date="${day.d}" title="${tip}">
          <span class="tick" data-tick="1">${ICON("check", 14)}</span>
-         <span class="wk-when day-when">${fmtDay(day.d)}<small>${day.w}</small></span>
+         <span class="wk-when day-when">第 ${STUDY.days.indexOf(day) + 1} 天</span>
          <span class="lbl">${day.t}</span>
          ${isToday ? `<span class="wk-tag now">今天</span>` : ""}
          <span class="day-go" title="${attrEsc(a.label)}">${ICON(a.icon, 14)}</span>
        </div>`;
     }).join("");
-    const tag = isCur ? `<span class="wk-tag now">本週</span>`
-      : wk.tag ? `<span class="wk-tag ${tagClass(wk.tag)}">${wk.tag}</span>` : "";
+    const tag = wk.tag ? `<span class="wk-tag ${tagClass(wk.tag)}">${wk.tag}</span>` : "";
     return `
       <div class="wk-card ${isCur ? "current" : ""}">
         <div class="wk-top">
           <div class="wk-badge">${wk.id}</div>
-          <div><div class="wk-title">${wk.title}</div><div class="wk-date">${wk.range}・${daysOfWeek(wk).length} 天</div></div>
+          <div><div class="wk-title">${wk.title}</div><div class="wk-date">${daysOfWeek(wk).length} 天</div></div>
           ${tag}
         </div>
         <div class="wk-desc">${wk.desc}</div>
@@ -186,7 +185,7 @@ function buildHome() {
     </div>`;
 
   body.innerHTML = hero +
-    `<div class="section-head">${ICON("layers")} 17 天讀書計畫・共 4 週 <span class="muted">有書本圖示的可點開教材；點左邊方框標記今天做完了</span></div>` +
+    `<div class="section-head">${ICON("layers")} 17 天學習計畫・共 4 階段 <span class="muted">有書本圖示的可點開教材；點左邊方框標記這天做完了</span></div>` +
     `<div class="week-grid">${weekCards}</div>` +
     `<div class="section-head">${ICON("route")} 快速入口</div>` + links;
 
@@ -232,7 +231,7 @@ function lessonDateMap() {
   STUDY.days.forEach(day => {
     if (day.p && !map[day.p]) {
       const wk = STUDY.weeks.find(w => day.d >= w.start && day.d <= w.end);
-      map[day.p] = (wk ? wk.id + "・" : "") + fmtDay(day.d);
+      map[day.p] = (wk ? wk.id + "・" : "") + "第 " + (STUDY.days.indexOf(day) + 1) + " 天";
     }
   });
   return map;
