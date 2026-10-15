@@ -124,14 +124,14 @@ function buildHome() {
   const countTxt = d > 0 ? d : d === 0 ? "0" : "—";
   const hero = `
     <div class="hero">
-      <div class="hero-count"><span class="big">${STUDY.days.length}</span><span class="lbl">天學習計畫</span></div>
+      <div class="hero-count"><span class="big">7</span><span class="lbl">個初級單元</span></div>
       <div class="hero-info">
         <h1>APCS 初級 · Python 自學站</h1>
-        <p>只含初級 7 個單元，<b>兩天一組</b>：第 1 天讀觀念、第 2 天做練習頁與實作題；7 個單元讀完後就是總測與錯題重練。每天約 30~40 分鐘。</p>
+        <p>只含初級 7 個單元，<b>兩步一組</b>：先讀觀念，再做練習頁與實作題；7 個單元讀完後就是總測與錯題重練。</p>
         <div class="hero-meta">
           <span class="hero-chip">${ICON("target", 15)} 初級題本</span>
-          <span class="hero-chip">${ICON("calendar", 15)} 共 4 階段 / ${STUDY.days.length} 天</span>
-          <span class="hero-chip">${ICON("cap", 15)} 每天約 30~40 分鐘</span>
+          <span class="hero-chip">${ICON("calendar", 15)} 學習路線</span>
+          
         </div>
       </div>
       <div class="progress-ring">
@@ -155,7 +155,6 @@ function buildHome() {
       return `<div class="wk-item day-item ${DONE.has(key) ? "done" : ""} ${isToday ? "is-today" : ""}"
                    data-path="${key}" data-date="${day.d}" title="${tip}">
          <span class="tick" data-tick="1">${ICON("check", 14)}</span>
-         <span class="wk-when day-when">第 ${STUDY.days.indexOf(day) + 1} 天</span>
          <span class="lbl">${day.t}</span>
          ${isToday ? `<span class="wk-tag now">今天</span>` : ""}
          <span class="day-go" title="${attrEsc(a.label)}">${ICON(a.icon, 14)}</span>
@@ -166,7 +165,7 @@ function buildHome() {
       <div class="wk-card ${isCur ? "current" : ""}">
         <div class="wk-top">
           <div class="wk-badge">${wk.id}</div>
-          <div><div class="wk-title">${wk.title}</div><div class="wk-date">${daysOfWeek(wk).length} 天</div></div>
+          <div><div class="wk-title">${wk.title}</div><div class="wk-date">${daysOfWeek(wk).length} 個項目</div></div>
           ${tag}
         </div>
         <div class="wk-desc">${wk.desc}</div>
@@ -185,7 +184,7 @@ function buildHome() {
     </div>`;
 
   body.innerHTML = hero +
-    `<div class="section-head">${ICON("layers")} 17 天學習計畫・共 4 階段 <span class="muted">有書本圖示的可點開教材；點左邊方框標記這天做完了</span></div>` +
+    `<div class="section-head">${ICON("layers")} 學習計畫 <span class="muted">有書本圖示的可點開教材；點左邊方框標記做完了</span></div>` +
     `<div class="week-grid">${weekCards}</div>` +
     `<div class="section-head">${ICON("route")} 快速入口</div>` + links;
 
@@ -231,7 +230,7 @@ function lessonDateMap() {
   STUDY.days.forEach(day => {
     if (day.p && !map[day.p]) {
       const wk = STUDY.weeks.find(w => day.d >= w.start && day.d <= w.end);
-      map[day.p] = (wk ? wk.id + "・" : "") + "第 " + (STUDY.days.indexOf(day) + 1) + " 天";
+      map[day.p] = "";
     }
   });
   return map;
