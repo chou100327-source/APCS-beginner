@@ -742,3 +742,11 @@ main{height:calc(100vh - 52px); overflow:hidden}
 .ce-trace .tr-yes{color:var(--ok)} .ce-trace .tr-no{color:var(--bad)}
 .ce-trace .tr-all,.ce-trace .tr-skip,.ce-trace .tr-dots{color:var(--muted)}
 .ce-trace .tr-err{color:var(--bad)}
+.ce-trace .tr-steps-h{margin-top:6px; font-size:12.5px; font-weight:700; color:#33527f}
+.ce-trace ol.tr-steps{list-style:decimal; margin:3px 0 2px; padding-left:1.5em}
+.ce-trace ol.tr-steps li{margin:5px 0}
+.ce-trace .tr-arrow{color:var(--brand); font-weight:700; margin:0 3px}
+.ce-trace .tr-val{background:#fff8d6; border-color:#f0dc8a; font-weight:700}
+.ce-trace .tr-note{font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:1px}
+.ce-tip-h{font-size:12.5px; font-weight:700; color:#8a6d00; margin-top:6px}
+.ce-sum b{color:var(--brand)}

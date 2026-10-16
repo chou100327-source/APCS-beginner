@@ -501,33 +501,42 @@ function traceHTML(trace, lines, lineIdx) {
   const fmtVars = o => Object.entries(o).map(([k, v]) => `<code>${escapeHtml(k)} = ${escapeHtml(v)}</code>`).join("　");
   const one = r => {
     const parts = [];
+    if (r.in && r.in.length) parts.push("這行從輸入讀進：" + r.in.map(x => `<code>${escapeHtml(JSON.stringify(x))}</code>`).join("、") + "（字串，連引號只是表示它是文字）");
+    if (r.s && !(r.x && r.x.length)) parts.push(`把變數換成它「現在的值」：<code>${escapeHtml(r.s)}</code>`);
     if (isCond) {
-      const nxt = r.nx ? (lines[r.nx - 1] || "") : "";
-      const inBody = r.nx && r.nx > ln && ((nxt.match(/^ */) || [""])[0].length > ind);
+      let bodyStart = ln + 1;                      // 縮排區塊的第一行（略過空行與註解）
+      while (bodyStart <= lines.length && (!lines[bodyStart - 1].trim() || /^\s*#/.test(lines[bodyStart - 1]))) bodyStart++;
+      const inBody = r.nx === bodyStart;
       parts.push(inBody ? `<b class="tr-yes">條件成立</b>，進入裡面那一行` : `<b class="tr-no">條件不成立</b>，跳過裡面的內容`);
     }
     if (r.v && Object.keys(r.v).length) parts.push("執行後：" + fmtVars(r.v));
     else if (!isCond && !r.o) parts.push("沒有改變任何變數");
     if (r.o) parts.push("印出：<code class=\"tr-out\">" + escapeHtml(r.o.replace(/\n$/, "").replace(/\n/g, " ⏎ ")) + "</code>" + (r.o.endsWith("\n") ? "" : "（沒換行）"));
-    return parts.join("；");
+    let html = parts.join("；");
+    if (r.x && r.x.length) {
+      const note = t => escapeHtml(t).replace(/&lt;(\/?)b&gt;/g, "<$1b>");
+      html += `<div class="tr-steps-h">一步一步算（照 Python 實際的運算順序）：</div><ol class="tr-steps">` +
+        r.x.map(([e, v, n]) => `<li><code>${escapeHtml(e)}</code> <span class="tr-arrow">→</span> <code class="tr-val">${escapeHtml(v)}</code>${n ? `<div class="tr-note">${note(n)}</div>` : ""}</li>`).join("") + `</ol>`;
+    }
+    return html;
   };
   const errHere = trace.err && trace.errLine === ln;
-  if (!rec && !errHere) return `<li class="tr-skip">這行在這次執行時沒有被跑到（例如被 if 跳過、或在函式裡還沒被呼叫）。</li>`;
+  if ((!rec || rec.n === 0) && !errHere) return `<li class="tr-skip">這次示範的輸入<b>沒有走到這一行</b>（它在 if / elif / else 的另一條路上，或在函式裡還沒被呼叫）。換一組輸入、讓條件的結果不同，就會走到這裡。上面的說明是「如果走到這行會發生什麼事」。</li>`;
   let html = "";
-  if (rec) {
+  if (rec && rec.n > 0) {
     if (rec.n === 1) {
       const r = rec.runs[0];
       html += `<li>${one(r)}</li>`;
       if (r.a) html += `<li class="tr-all">這時所有變數：${fmtVars(r.a)}</li>`;
     } else {
-      html += `<li>這行<b>總共執行 ${rec.n} 次</b>（在迴圈或函式裡）。每一次的結果：</li>`;
+      html += `<li>這行<b>${trace.inf ? "已經執行了 " + rec.n + " 次還停不下來（無窮迴圈！）" : "總共執行 " + rec.n + " 次"}</b>（在迴圈或函式裡）。每一次的結果：</li>`;
       const shown = rec.runs.slice(0, 6);
       shown.forEach((r, i) => { html += `<li class="tr-run"><span class="tr-i">第 ${i + 1} 次</span>${one(r)}</li>`; });
       if (rec.n > 7) html += `<li class="tr-run tr-dots">⋯ 中間省略 ⋯</li>`;
       if (rec.n > 6) html += `<li class="tr-run"><span class="tr-i">最後一次</span>${one(rec.runs[rec.runs.length - 1])}</li>`;
     }
   }
-  if (errHere) html += `<li class="tr-err">這行執行時會<b>出錯</b>：<code>${escapeHtml(trace.err)}</code></li>`;
+  if (errHere) html += `<li class="tr-err">這行執行時會<b>出錯</b>：<code>${escapeHtml(trace.err)}</code>${trace.errNote ? `<div class="tr-note">${escapeHtml(trace.errNote)}</div>` : ""}</li>`;
   return html;
 }
 function setupCodeWalkthrough(pre) {
@@ -558,11 +567,18 @@ function setupCodeWalkthrough(pre) {
   function draw() {
     const st = steps[cur], ln = lines[st.line] || "";
     lnEls.forEach((e, i) => e.classList.toggle("dbg-current", i === st.line));
-    const info = window.EXPLAIN ? EXPLAIN.line(lines, st.line) : { sum: "", points: [], ctx: "" };
+    let info = window.EXPLAIN ? EXPLAIN.line(lines, st.line) : { sum: "", points: [], ctx: "" };
+    // 有預先跑出來的紀錄時：用「帶入真實數值」的白話說明取代通用說明
+    const rec1 = trace && trace.lines[st.line + 1];
+    const run1 = rec1 && rec1.runs[0];
+    if (run1 && run1.m && ln.trim() && !/^\s*#/.test(ln)) {
+      const md = t => escapeHtml(t).replace(/&lt;(\/?)b&gt;/g, "<$1b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+      info = { sum: md(run1.m), points: (run1.w || []).map(md), ctx: info.ctx, tips: true };
+    }
     text.innerHTML =
       `<div class="ce-top"><span class="ce-no">第 ${st.line + 1} 行</span><code class="ce-code">${escapeHtml(ln.trim())}</code></div>
        <div class="ce-sum">${info.sum}</div>
-       ${info.points.length ? `<ul class="ce-points">${info.points.map(p => `<li>${p}</li>`).join("")}</ul>` : ""}
+       ${info.points.length ? `${info.tips ? '<div class="ce-tip-h">小提醒</div>' : ""}<ul class="ce-points">${info.points.map(p => `<li>${p}</li>`).join("")}</ul>` : ""}
        ${info.ctx ? `<div class="ce-ctx">${ICON("layers", 14)}<span>${info.ctx}</span></div>` : ""}
        ${trace && ln.trim() && !/^\s*#/.test(ln) ? `<div class="ce-trace"><div class="ce-trace-h">${ICON("play", 14)}實際跑起來會怎樣</div><ul>${traceHTML(trace, lines, st.line)}</ul></div>` : ""}`;
     prog.textContent = `${cur + 1} / ${steps.length}`;
