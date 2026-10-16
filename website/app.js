@@ -488,6 +488,48 @@ document.addEventListener("keydown", e => {
   else if (e.key === "ArrowLeft") { e.preventDefault(); activeWalk.prev(); }
   else if (e.key === "Escape") activeWalk.stop();
 });
+/* ---- 逐行走讀：實際執行紀錄（trace.js 由 tools/build_trace.py 預先跑出來） ---- */
+function fnvHash(text) {
+  let h = 0x811c9dc5;
+  for (const b of new TextEncoder().encode(text)) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, "0");
+}
+function traceHTML(trace, lines, lineIdx) {
+  const ln = lineIdx + 1, rec = trace.lines[ln];
+  const text = lines[lineIdx], ind = (text.match(/^ */) || [""])[0].length;
+  const isCond = /^\s*(if|elif|while)\b.*:\s*$/.test(text);
+  const fmtVars = o => Object.entries(o).map(([k, v]) => `<code>${escapeHtml(k)} = ${escapeHtml(v)}</code>`).join("　");
+  const one = r => {
+    const parts = [];
+    if (isCond) {
+      const nxt = r.nx ? (lines[r.nx - 1] || "") : "";
+      const inBody = r.nx && r.nx > ln && ((nxt.match(/^ */) || [""])[0].length > ind);
+      parts.push(inBody ? `<b class="tr-yes">條件成立</b>，進入裡面那一行` : `<b class="tr-no">條件不成立</b>，跳過裡面的內容`);
+    }
+    if (r.v && Object.keys(r.v).length) parts.push("執行後：" + fmtVars(r.v));
+    else if (!isCond && !r.o) parts.push("沒有改變任何變數");
+    if (r.o) parts.push("印出：<code class=\"tr-out\">" + escapeHtml(r.o.replace(/\n$/, "").replace(/\n/g, " ⏎ ")) + "</code>" + (r.o.endsWith("\n") ? "" : "（沒換行）"));
+    return parts.join("；");
+  };
+  const errHere = trace.err && trace.errLine === ln;
+  if (!rec && !errHere) return `<li class="tr-skip">這行在這次執行時沒有被跑到（例如被 if 跳過、或在函式裡還沒被呼叫）。</li>`;
+  let html = "";
+  if (rec) {
+    if (rec.n === 1) {
+      const r = rec.runs[0];
+      html += `<li>${one(r)}</li>`;
+      if (r.a) html += `<li class="tr-all">這時所有變數：${fmtVars(r.a)}</li>`;
+    } else {
+      html += `<li>這行<b>總共執行 ${rec.n} 次</b>（在迴圈或函式裡）。每一次的結果：</li>`;
+      const shown = rec.runs.slice(0, 6);
+      shown.forEach((r, i) => { html += `<li class="tr-run"><span class="tr-i">第 ${i + 1} 次</span>${one(r)}</li>`; });
+      if (rec.n > 7) html += `<li class="tr-run tr-dots">⋯ 中間省略 ⋯</li>`;
+      if (rec.n > 6) html += `<li class="tr-run"><span class="tr-i">最後一次</span>${one(rec.runs[rec.runs.length - 1])}</li>`;
+    }
+  }
+  if (errHere) html += `<li class="tr-err">這行執行時會<b>出錯</b>：<code>${escapeHtml(trace.err)}</code></li>`;
+  return html;
+}
 function setupCodeWalkthrough(pre) {
   const code = pre.querySelector("code");
   if (!code || pre.dataset.walk) return;
@@ -506,8 +548,9 @@ function setupCodeWalkthrough(pre) {
   const head = panel.querySelector(".ce-head"), text = panel.querySelector(".ce-text"), ctrl = panel.querySelector(".ce-ctrl");
   // 一行一行往下讀（空行跳過），每行拆開說明：在做什麼、每個部分的意思、屬於哪一段。
   // 說明由 explain.js 產生；想看實際執行結果請到「程式判題」分頁跑一次。
+  const trace = (typeof TRACE !== "undefined") ? TRACE[fnvHash(raw)] : null;
   const steps = lines.map((l, i) => ({ line: i })).filter(st => lines[st.line].trim() !== "");
-  head.innerHTML = `${ICON("book", 14)}<span>逐行走讀：每一行拆開講「在做什麼、每個部分的意思、屬於哪一段」。鍵盤 ← → 也可以切換。</span>`;
+  head.innerHTML = `${ICON("book", 14)}<span>逐行走讀：每一行講「在做什麼、每個部分的意思、屬於哪一段」，最下面還有「實際跑起來會怎樣」（每次執行後的變數值與印出結果）。鍵盤 ← → 也可以切換。</span>`;
   let cur = 0, on = false;
   const mk = (html, f) => { const b = document.createElement("button"); b.className = "btn"; b.innerHTML = html; b.onclick = f; return b; };
   const prog = document.createElement("span"); prog.className = "prog";
@@ -520,7 +563,8 @@ function setupCodeWalkthrough(pre) {
       `<div class="ce-top"><span class="ce-no">第 ${st.line + 1} 行</span><code class="ce-code">${escapeHtml(ln.trim())}</code></div>
        <div class="ce-sum">${info.sum}</div>
        ${info.points.length ? `<ul class="ce-points">${info.points.map(p => `<li>${p}</li>`).join("")}</ul>` : ""}
-       ${info.ctx ? `<div class="ce-ctx">${ICON("layers", 14)}<span>${info.ctx}</span></div>` : ""}`;
+       ${info.ctx ? `<div class="ce-ctx">${ICON("layers", 14)}<span>${info.ctx}</span></div>` : ""}
+       ${trace && ln.trim() && !/^\s*#/.test(ln) ? `<div class="ce-trace"><div class="ce-trace-h">${ICON("play", 14)}實際跑起來會怎樣</div><ul>${traceHTML(trace, lines, st.line)}</ul></div>` : ""}`;
     prog.textContent = `${cur + 1} / ${steps.length}`;
     if (lnEls[st.line]) lnEls[st.line].scrollIntoView({ block: "nearest", behavior: "smooth" });
   }

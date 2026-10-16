@@ -730,3 +730,15 @@ main{height:calc(100vh - 52px); overflow:hidden}
 .sidebar .sec-optional{opacity:.6; margin-top:18px}
 .sidebar a.nav-optional{opacity:.55}
 .sidebar a.nav-optional:hover,.sidebar a.nav-optional.active{opacity:1}
+
+/* 逐行走讀：實際執行紀錄 */
+.ce-trace{margin-top:10px; padding:10px 12px; border-radius:10px; background:#eef6ff; border:1px solid #cfe3ff; font-size:13px; line-height:1.65}
+.ce-trace-h{display:flex; align-items:center; gap:6px; font-weight:700; color:var(--brand); margin-bottom:4px}
+.ce-trace ul{list-style:none; margin:0; padding:0}
+.ce-trace li{margin:3px 0; color:var(--ink)}
+.ce-trace code{background:#fff; border:1px solid #d6e6ff; border-radius:5px; padding:1px 6px; font-size:.92em}
+.ce-trace .tr-out{background:#1e1e1e; color:#9fe29f; border-color:#1e1e1e}
+.ce-trace .tr-i{display:inline-block; min-width:4.6em; margin-right:6px; font-size:12px; font-weight:700; color:#fff; background:#7a8aa6; border-radius:6px; padding:0 7px; text-align:center}
+.ce-trace .tr-yes{color:var(--ok)} .ce-trace .tr-no{color:var(--bad)}
+.ce-trace .tr-all,.ce-trace .tr-skip,.ce-trace .tr-dots{color:var(--muted)}
+.ce-trace .tr-err{color:var(--bad)}
