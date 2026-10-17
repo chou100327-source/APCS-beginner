@@ -614,20 +614,50 @@ function cleanEmoji(html) {
 let quizState = [];
 function initQuiz() {
   const weekSel = document.getElementById("quiz-week");
-  // 題庫只有初級：範圍用「單元」切分（題庫的 u 欄位），另有全部與錯題重練
+  // 範圍：全部初級（預設）／仿歷屆題型／各單元／錯題重練
+  const exam = document.createElement("option"); exam.value = "s:exam"; exam.textContent = "仿歷屆題型（程式追蹤・觀念判斷）"; weekSel.appendChild(exam);
   [...new Set(QUIZ.map(q => q.u).filter(Boolean))].forEach(u => {
     const o = document.createElement("option"); o.value = "u:" + u; o.textContent = "單元 " + u; weekSel.appendChild(o);
   });
   const wrongOpt = document.createElement("option"); wrongOpt.value = "wrong"; weekSel.appendChild(wrongOpt);
   updateWrongCount();
+  weekSel.addEventListener("change", updatePoolInfo);
   document.getElementById("quiz-start").addEventListener("click", startQuiz);
   document.getElementById("quiz-submit").addEventListener("click", gradeQuiz);
+  const reset = document.getElementById("quiz-reset-seen");
+  if (reset) reset.addEventListener("click", () => { SEEN.clear(); saveSeen(); updatePoolInfo(); });
+  updatePoolInfo();
   document.getElementById("quiz-list").innerHTML =
-    `<div class="quiz-hint">${ICON("quiz", 34)}選一個範圍，按「開始 / 重新出題」，每次會從該範圍<b>隨機抽 ${QUIZ_DRAW} 題並打亂選項順序</b>，交卷即時對答案與看解析。答錯的題會自動進「錯題重練」。</div>`;
+    `<div class="quiz-hint">${ICON("quiz", 34)}選一個範圍，按「開始 / 重新出題」。每次抽 ${QUIZ_DRAW} 題：<b>優先出你還沒做過的題目</b>，再加上<b>每次數字都不同的隨機生成題</b>，選項順序也會打亂。<br>「仿歷屆題型」是依 APCS 歷屆考題的出題方式（程式追蹤、選出正確敘述…）自己設計的題目。答錯的題會自動進「錯題重練」。<br>想做<b>真正的歷屆試題</b>：到 <a href="https://apcs.csie.ntnu.edu.tw/" target="_blank" rel="noopener">APCS 官網</a>下載歷屆試題，或到 <a href="https://zerojudge.tw/" target="_blank" rel="noopener">ZeroJudge</a> 的 APCS 專區線上練習。</div>`;
 }
+/* ---- 出過哪些題：優先出沒做過的 ---- */
+const SEEN = new Set(JSON.parse(localStorage.getItem("apcs.quizSeen") || "[]"));
+function saveSeen() { try { localStorage.setItem("apcs.quizSeen", JSON.stringify([...SEEN])); } catch (e) {} }
+const quizKey = q => "q" + fnvHash((q.q || "") + "|" + (q.o ? q.o[0] : ""));
+/* 這個範圍的題庫（不含隨機生成題） */
+function bankPool(wk) {
+  return QUIZ.map((q, gi) => ({ q, gi, key: quizKey(q) })).filter(o =>
+    wk.startsWith("u:") ? o.q.u === wk.slice(2)
+    : wk === "s:exam" ? o.q.s === "exam"
+    : true);
+}
+function updatePoolInfo() {
+  const el = document.getElementById("quiz-pool-info");
+  const wk = document.getElementById("quiz-week").value;
+  if (!el) return;
+  if (wk === "wrong") { el.textContent = `錯題本裡有 ${WRONG.size + WRONGGEN.length} 題`; return; }
+  const pool = bankPool(wk);
+  const fresh = pool.filter(o => !SEEN.has(o.key)).length;
+  const gen = wk === "s:exam" ? "" : "，另外每次有隨機生成題（數字都不同）";
+  el.textContent = `題庫 ${pool.length} 題，還沒出過的有 ${fresh} 題${gen}`;
+}
+/* 隨機生成的錯題：因為題目是即時生成的，要把整題存起來才能「錯題重練」 */
+let WRONGGEN = [];
+try { WRONGGEN = JSON.parse(localStorage.getItem("apcs.wrongGen") || "[]"); } catch (e) { WRONGGEN = []; }
+function saveWrongGen() { try { localStorage.setItem("apcs.wrongGen", JSON.stringify(WRONGGEN.slice(-60))); } catch (e) {} }
 function updateWrongCount() {
   const opt = document.querySelector('#quiz-week option[value="wrong"]');
-  if (opt) opt.textContent = `錯題重練（${WRONG.size}）`;
+  if (opt) opt.textContent = `錯題重練（${WRONG.size + WRONGGEN.length}）`;
 }
 const QUIZ_DRAW = 15;               // 每次隨機抽幾題（不足就全出）
 function shuffled(arr) {            // Fisher-Yates
@@ -645,15 +675,34 @@ function shuffleOptions(q) {
 }
 function startQuiz() {
   const wk = document.getElementById("quiz-week").value;
-  let pool = QUIZ.map((q, i) => ({ q, gi: i }))
-    .filter(o => wk === "wrong" ? WRONG.has(o.gi)
-      : wk.startsWith("u:") ? o.q.u === wk.slice(2)
-      : (wk === "all" || wk === "core" || o.q.w === wk));
-  // 隨機抽題 + 打亂選項：同一個範圍重複測不會拿到一模一樣的考卷
-  pool = shuffled(pool).slice(0, QUIZ_DRAW);
-  quizState = pool.map(o => ({ q: shuffleOptions(o.q), gi: o.gi, sel: -1 }));
+  let items = [];
+  if (wk === "wrong") {
+    items = QUIZ.map((q, gi) => ({ q, gi, key: quizKey(q) })).filter(o => WRONG.has(o.gi))
+      .concat(WRONGGEN.map(q => ({ q, gi: -1, key: quizKey(q) })));
+    items = shuffled(items).slice(0, QUIZ_DRAW);
+  } else {
+    const genN = wk === "s:exam" ? 0 : 5;
+    const pool = bankPool(wk);
+    const need = Math.min(pool.length, QUIZ_DRAW - genN);
+    // 優先出沒做過的；不夠就把這個範圍的紀錄清掉，重新輪一圈
+    const unseen = shuffled(pool.filter(o => !SEEN.has(o.key)));
+    let picked = unseen.slice(0, need);
+    if (picked.length < need) {
+      pool.forEach(o => SEEN.delete(o.key));
+      const rest = shuffled(pool.filter(o => !picked.includes(o)));
+      picked = picked.concat(rest.slice(0, need - picked.length));
+    }
+    picked.forEach(o => SEEN.add(o.key));
+    saveSeen();
+    const unit = wk.startsWith("u:") ? wk.slice(2) : null;
+    const gens = (genN && window.QUIZGEN ? QUIZGEN.make({ u: unit, n: QUIZ_DRAW - picked.length }) : [])
+      .map(q => ({ q, gi: -1, key: quizKey(q) }));
+    items = shuffled(picked.concat(gens));
+  }
+  quizState = items.map(o => ({ q: shuffleOptions(o.q), gi: o.gi, sel: -1 }));
   document.getElementById("quiz-score").textContent = "";
-  if (!pool.length) {
+  updatePoolInfo();
+  if (!quizState.length) {
     document.getElementById("quiz-list").innerHTML =
       `<div class="quiz-hint">${ICON("check", 34)}${wk === "wrong" ? "目前沒有錯題，先去各週作答吧！" : "這個範圍沒有題目。"}</div>`;
     document.getElementById("quiz-submit").style.display = "none";
@@ -668,7 +717,7 @@ function renderQuiz() {
   quizState.forEach((st, qi) => {
     const card = document.createElement("div");
     card.className = "q-card";
-    card.innerHTML = `<div class="q-title">${qi + 1}. ${st.q.q}<span class="q-week">[${st.q.w}]</span></div>`;
+    card.innerHTML = `<div class="q-title">${qi + 1}. ${st.q.q}<span class="q-week">[${st.q.s === "gen" ? "隨機生成" : st.q.s === "exam" ? "仿歷屆題型" : (st.q.u || st.q.w)}]</span></div>`;
     st.q.o.forEach((opt, oi) => {
       const div = document.createElement("div");
       div.className = "q-opt";
@@ -707,14 +756,20 @@ function gradeQuiz() {
       if (oi === st.q.a) o.classList.add("correct");
       if (oi === st.sel && st.sel !== st.q.a) o.classList.add("wrong");
     });
-    if (st.sel === st.q.a) { correct++; WRONG.delete(st.gi); }
-    else WRONG.add(st.gi);           // 答錯（含未作答）記進錯題本
+    if (st.sel === st.q.a) {
+      correct++;
+      if (st.gi >= 0) WRONG.delete(st.gi);
+      else WRONGGEN = WRONGGEN.filter(w => w.q !== st.q.q);
+    } else if (st.gi >= 0) WRONG.add(st.gi);       // 答錯（含未作答）記進錯題本
+    else if (!WRONGGEN.some(w => w.q === st.q.q)) { const { _py, _expect, ...keep } = st.q; WRONGGEN.push(keep); }
     card.querySelector(".q-explain").classList.add("show");
     // 對完答案才顯示「展開動畫」按鈕；動畫在按下展開時才載入
     if (st._vizToggle) st._vizToggle.style.display = "block";
   });
   saveWrong();
+  saveWrongGen();
   updateWrongCount();
+  updatePoolInfo();
   const total = quizState.length;
   const pct = total ? Math.round(correct / total * 100) : 0;
   document.getElementById("quiz-score").textContent = `得分：${correct} / ${total}（${pct}%）`;

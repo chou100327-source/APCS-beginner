@@ -131,7 +131,7 @@ const QUIZ = [
     o:["<code>n = int(input())</code>；<code>a = [int(input()) for _ in range(n)]</code>","<code>a = list(input())</code>","<code>a = int(input().split())</code>","<code>a = map(int, input())</code>"], a:0,
     e:"數字各佔一行就要呼叫 N 次 input()。若 N 個數字在同一行，才是 input().split() 再 map(int, …)。" },
   { w:"初級", u:"02 資料型態與變數", q:"<code>print(type(6 / 3))</code> 輸出？",
-    o:["<class 'float'>","<class 'int'>","<class 'str'>","<class 'bool'>"], a:0,
+    o:["&lt;class 'float'&gt;","&lt;class 'int'&gt;","&lt;class 'str'&gt;","&lt;class 'bool'&gt;"], a:0,
     e:"Python 3 的 / 一律回傳 float，6 / 3 是 2.0。要整數商用 //。" },
   { w:"初級", u:"02 資料型態與變數", q:"<code>print(\"5\" * 3)</code> 輸出？",
     o:["555","15","5 5 5","會噴錯"], a:0,
