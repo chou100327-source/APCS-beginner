@@ -214,7 +214,7 @@ const NAV_SECTIONS = [
     ["06 條件判斷", "06-條件判斷.md"],
     ["07 迴圈", "07-迴圈.md"],
   ]},
-  { name: "每日練習", note: "7 份練習頁", dir: "../練習/", files: [
+  { name: "每日練習", note: "7 份練習頁＋官方範例題", dir: "../練習/", files: [
     ["01 練習：輸出格式", "01-輸出格式.md"],
     ["02 練習：型別轉換", "02-型別轉換.md"],
     ["03 練習：算術運算", "03-算術運算.md"],
@@ -222,6 +222,7 @@ const NAV_SECTIONS = [
     ["05 練習：位元運算", "05-位元運算.md"],
     ["06 練習：條件判斷", "06-條件判斷.md"],
     ["07 練習：迴圈", "07-迴圈.md"],
+    ["官方範例題（程式識讀・實作）", "官方範例題.md"],
   ]},
 ];
 /* 教材路徑 → 計畫中排定的日期與週次（取第一次出現的那天） */
@@ -628,7 +629,7 @@ function initQuiz() {
   if (reset) reset.addEventListener("click", () => { SEEN.clear(); saveSeen(); updatePoolInfo(); });
   updatePoolInfo();
   document.getElementById("quiz-list").innerHTML =
-    `<div class="quiz-hint">${ICON("quiz", 34)}選一個範圍，按「開始 / 重新出題」。每次抽 ${QUIZ_DRAW} 題：<b>優先出你還沒做過的題目</b>，再加上<b>每次數字都不同的隨機生成題</b>，選項順序也會打亂。<br>「仿歷屆題型」是依 APCS 歷屆考題的出題方式（程式追蹤、選出正確敘述…）自己設計的題目。答錯的題會自動進「錯題重練」。<br>想做<b>真正的歷屆試題</b>：到 <a href="https://apcs.csie.ntnu.edu.tw/" target="_blank" rel="noopener">APCS 官網</a>下載歷屆試題，或到 <a href="https://zerojudge.tw/" target="_blank" rel="noopener">ZeroJudge</a> 的 APCS 專區線上練習。</div>`;
+    `<div class="quiz-hint">${ICON("quiz", 34)}選一個範圍，按「開始 / 重新出題」。每次抽 ${QUIZ_DRAW} 題：<b>優先出你還沒做過的題目</b>，再加上<b>每次數字都不同的隨機生成題</b>，選項順序也會打亂。<br>「仿歷屆題型」是依 APCS 歷屆考題的出題方式（程式追蹤、選出正確敘述…）自己設計的題目。答錯的題會自動進「錯題重練」。<br>想做<b>官方範例題與歷屆試題</b>：到「教材」分頁的「官方範例題」，或到 <a href="https://apcs.csie.ntnu.edu.tw/" target="_blank" rel="noopener">APCS 官網</a>下載歷屆試題，或到 <a href="https://zerojudge.tw/" target="_blank" rel="noopener">ZeroJudge</a> 的 APCS 專區線上練習。</div>`;
 }
 /* ---- 出過哪些題：優先出沒做過的 ---- */
 const SEEN = new Set(JSON.parse(localStorage.getItem("apcs.quizSeen") || "[]"));
