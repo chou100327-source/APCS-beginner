@@ -856,11 +856,57 @@ function initJudge() {
   ed.addEventListener("scroll", syncEditorScroll);
   ed.addEventListener("keydown", e => onEditorKey(e, ed));
 }
+/* ---------- 「教我寫」：思考步驟、填空骨架、參考解答 ---------- */
+const HOW_TO = `
+  <details class="g-how"><summary>第一次用？怎麼用這個頁面（點開看）</summary>
+    <ol>
+      <li><b>讀題</b>：圈出「輸入長什麼樣」「要輸出什麼」，拿題目的範例輸入在紙上手算一遍。</li>
+      <li><b>讀輸入</b>：<code>n = int(input())</code> 讀一個整數；<code>a, b = map(int, input().split())</code> 讀同一行的幾個數；<code>nums = list(map(int, input().split()))</code> 讀一整行成串列。</li>
+      <li><b>寫程式</b>：在中間的編輯器寫 Python；<b>只印答案</b>，不要印「請輸入…」。</li>
+      <li><b>先執行再判題</b>：把範例輸入貼到「自訂輸入」，按「執行」，看輸出和範例輸出是不是一模一樣；沒問題再按「判題」跑全部測資。</li>
+      <li><b>看結果</b>：<b>AC</b> 全部答對；<b>WA</b> 答案或格式不對（空白、換行、小數位數也算）；<b>RE</b> 程式出錯（看錯誤訊息的那一行）；<b>TLE</b> 跑太久（多半是無窮迴圈）。</li>
+      <li><b>卡住了</b>：往下看「一步一步教你」→「填空骨架」→ 最後才看「參考解答」。</li>
+    </ol>
+  </details>`;
+function guideHTML(p) {
+  const g = (typeof GUIDES !== "undefined") && GUIDES[p.id];
+  if (!g) return HOW_TO;
+  const li = arr => arr.map(x => `<li>${x}</li>`).join("");
+  return HOW_TO + `
+  <div class="g-box">
+    <h3>想不出來？一步一步教你</h3>
+    <ol class="g-steps">${li(g.steps)}</ol>
+    <h4>容易錯的地方</h4>
+    <ul class="g-traps">${li(g.traps)}</ul>
+    <div class="g-btns"><button class="btn" id="g-skel">把填空骨架放進編輯器</button></div>
+    <p class="g-hint">骨架裡的 <code>____</code> 是要你自己填的空格；填完才能執行。</p>
+    <details class="g-sol"><summary>我試過了，真的想看解答</summary>
+      <p class="g-warn">先自己寫一次再看，記得比較久。看完請關掉，自己重寫一遍。</p>
+      <pre class="g-code"><code>${escapeHtml(g.solution)}</code></pre>
+      <ul class="g-notes">${li(g.notes)}</ul>
+      <div class="g-btns"><button class="btn" id="g-sol-put">把解答放進編輯器</button></div>
+    </details>
+  </div>`;
+}
+function wireGuide(p) {
+  const g = (typeof GUIDES !== "undefined") && GUIDES[p.id];
+  if (!g) return;
+  const put = (code, what) => {
+    const ed = document.getElementById("code-editor");
+    const cur = ed.value;
+    if (cur.trim() && cur !== STUB && cur !== code && !confirm(`編輯器裡已經有你寫的程式，要換成「${what}」嗎？（你原本的程式會被蓋掉）`)) return;
+    ed.value = code; saveCode(); highlightEditor(); ed.focus();
+  };
+  const sk = document.getElementById("g-skel"), sp = document.getElementById("g-sol-put");
+  if (sk) sk.onclick = () => put(g.skeleton, "填空骨架");
+  if (sp) sp.onclick = () => put(g.solution, "參考解答");
+}
 function selectProblem(i) {
   currentProblem = PROBLEMS[i];
   localStorage.setItem("apcs.judge.last", i);
   document.getElementById("problem-statement").innerHTML = currentProblem.statement +
-    `<h3>測資組數</h3><p>此題共 ${currentProblem.tests.length} 組測資，全過才算 AC。</p>`;
+    `<h3>測資組數</h3><p>此題共 ${currentProblem.tests.length} 組測資，全過才算 AC。</p>` + guideHTML(currentProblem);
+  wireGuide(currentProblem);
   const saved = localStorage.getItem(codeKey(currentProblem));
   document.getElementById("code-editor").value = (saved != null && saved !== "") ? saved : STUB;
   highlightEditor();

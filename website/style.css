@@ -754,3 +754,20 @@ main{height:calc(100vh - 52px); overflow:hidden}
 .quiz-info{font-size:13px; color:var(--muted); margin:-4px 0 14px; display:flex; gap:12px; flex-wrap:wrap; align-items:center}
 .quiz-info a{color:var(--brand); text-decoration:none; font-weight:600; cursor:pointer}
 .quiz-info a:hover{text-decoration:underline}
+
+/* 程式判題：教我寫 */
+.g-how{margin:14px 0 6px; border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:2px 12px}
+.g-how summary,.g-sol summary{cursor:pointer; font-weight:700; padding:9px 0; color:var(--brand)}
+.g-how ol{margin:4px 0 10px; padding-left:1.3em; font-size:13.5px; line-height:1.75}
+.g-box{margin-top:14px; padding:14px 16px; border-radius:14px; background:#f3f8ff; border:1px solid #cfe3ff}
+.g-box h3{margin:0 0 6px; font-size:15px}
+.g-box h4{margin:12px 0 4px; font-size:13.5px; color:#8a6d00}
+.g-steps{margin:0; padding-left:1.3em; font-size:13.5px; line-height:1.8}
+.g-steps li{margin:5px 0}
+.g-traps,.g-notes{margin:0; padding-left:1.3em; font-size:13px; line-height:1.7; color:var(--muted)}
+.g-btns{margin:12px 0 4px; display:flex; gap:8px; flex-wrap:wrap}
+.g-hint{font-size:12.5px; color:var(--muted); margin:4px 0 8px}
+.g-sol{margin-top:8px; border-top:1px dashed #b9d3f5}
+.g-warn{background:#fff8d6; border:1px solid #f0dc8a; border-radius:8px; padding:6px 10px; font-size:12.5px; margin:4px 0 8px}
+.g-code{background:#1e1e1e; color:#d4d4d4; border-radius:10px; padding:12px 14px; font-size:12.5px; line-height:1.6; overflow:auto; margin:6px 0}
+.g-code code{background:none; padding:0; font:inherit; color:inherit}
