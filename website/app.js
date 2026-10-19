@@ -124,10 +124,10 @@ function buildHome() {
   const countTxt = d > 0 ? d : d === 0 ? "0" : "—";
   const hero = `
     <div class="hero">
-      <div class="hero-count"><span class="big">7</span><span class="lbl">個初級單元</span></div>
+      <div class="hero-count"><span class="big">15</span><span class="lbl">個單元</span></div>
       <div class="hero-info">
         <h1>APCS 初級 · Python 自學站</h1>
-        <p>只含初級 7 個單元，<b>兩步一組</b>：先讀觀念，再做練習頁與實作題；7 個單元讀完後就是總測與錯題重練。</p>
+        <p>先讀初級 7 個單元（<b>讀觀念 → 做練習頁 → 寫實作題</b>），再依重要程度讀「程式識讀補充」8 個單元，最後總測與錯題重練。</p>
         <div class="hero-meta">
           <span class="hero-chip">${ICON("target", 15)} 初級題本</span>
           <span class="hero-chip">${ICON("calendar", 15)} 學習路線</span>
@@ -214,7 +214,17 @@ const NAV_SECTIONS = [
     ["06 條件判斷", "06-條件判斷.md"],
     ["07 迴圈", "07-迴圈.md"],
   ]},
-  { name: "每日練習", note: "7 份練習頁＋官方範例題", dir: "../練習/", files: [
+  { name: "程式識讀補充（依重要程度由上往下讀）", note: "8 單元", dir: "../02-識讀補充/", files: [
+    ["★1 08 一維陣列與串列", "08-一維陣列與串列.md"],
+    ["★2 09 函式", "09-函式.md"],
+    ["★3 10 識讀題型技巧", "10-識讀題型技巧.md"],
+    ["★4 11 時間複雜度", "11-時間複雜度.md"],
+    ["★5 12 遞迴", "12-遞迴.md"],
+    ["★6 13 排序演算法", "13-排序演算法.md"],
+    ["★7 14 搜尋演算法", "14-搜尋演算法.md"],
+    ["★8 15 堆疊與佇列", "15-堆疊與佇列.md"],
+  ]},
+  { name: "每日練習", note: "7 份練習頁", dir: "../練習/", files: [
     ["01 練習：輸出格式", "01-輸出格式.md"],
     ["02 練習：型別轉換", "02-型別轉換.md"],
     ["03 練習：算術運算", "03-算術運算.md"],
@@ -222,7 +232,6 @@ const NAV_SECTIONS = [
     ["05 練習：位元運算", "05-位元運算.md"],
     ["06 練習：條件判斷", "06-條件判斷.md"],
     ["07 練習：迴圈", "07-迴圈.md"],
-    ["官方範例題（程式識讀・實作）", "官方範例題.md"],
   ]},
 ];
 /* 教材路徑 → 計畫中排定的日期與週次（取第一次出現的那天） */
@@ -617,6 +626,7 @@ function initQuiz() {
   const weekSel = document.getElementById("quiz-week");
   // 範圍：全部初級（預設）／仿歷屆題型／各單元／錯題重練
   const exam = document.createElement("option"); exam.value = "s:exam"; exam.textContent = "仿歷屆題型（程式追蹤・觀念判斷）"; weekSel.appendChild(exam);
+  const typeOpt = document.createElement("option"); typeOpt.value = "t:any"; typeOpt.textContent = "識讀題型（追蹤・填空・除錯・效能・計算邏輯）"; weekSel.appendChild(typeOpt);
   [...new Set(QUIZ.map(q => q.u).filter(Boolean))].forEach(u => {
     const o = document.createElement("option"); o.value = "u:" + u; o.textContent = "單元 " + u; weekSel.appendChild(o);
   });
@@ -640,6 +650,7 @@ function bankPool(wk) {
   return QUIZ.map((q, gi) => ({ q, gi, key: quizKey(q) })).filter(o =>
     wk.startsWith("u:") ? o.q.u === wk.slice(2)
     : wk === "s:exam" ? o.q.s === "exam"
+    : wk === "t:any" ? !!o.q.t
     : true);
 }
 function updatePoolInfo() {
@@ -649,7 +660,7 @@ function updatePoolInfo() {
   if (wk === "wrong") { el.textContent = `錯題本裡有 ${WRONG.size + WRONGGEN.length} 題`; return; }
   const pool = bankPool(wk);
   const fresh = pool.filter(o => !SEEN.has(o.key)).length;
-  const gen = wk === "s:exam" ? "" : "，另外每次有隨機生成題（數字都不同）";
+  const gen = (wk === "s:exam" || wk === "t:any") ? "" : "，另外每次有隨機生成題（數字都不同）";
   el.textContent = `題庫 ${pool.length} 題，還沒出過的有 ${fresh} 題${gen}`;
 }
 /* 隨機生成的錯題：因為題目是即時生成的，要把整題存起來才能「錯題重練」 */
@@ -682,7 +693,7 @@ function startQuiz() {
       .concat(WRONGGEN.map(q => ({ q, gi: -1, key: quizKey(q) })));
     items = shuffled(items).slice(0, QUIZ_DRAW);
   } else {
-    const genN = wk === "s:exam" ? 0 : 5;
+    const genN = (wk === "s:exam" || wk === "t:any") ? 0 : 5;
     const pool = bankPool(wk);
     const need = Math.min(pool.length, QUIZ_DRAW - genN);
     // 優先出沒做過的；不夠就把這個範圍的紀錄清掉，重新輪一圈
@@ -718,7 +729,7 @@ function renderQuiz() {
   quizState.forEach((st, qi) => {
     const card = document.createElement("div");
     card.className = "q-card";
-    card.innerHTML = `<div class="q-title">${qi + 1}. ${st.q.q}<span class="q-week">[${st.q.s === "gen" ? "隨機生成" : st.q.s === "exam" ? "仿歷屆題型" : (st.q.u || st.q.w)}]</span></div>`;
+    card.innerHTML = `<div class="q-title">${qi + 1}. ${st.q.q}<span class="q-week">[${st.q.s === "gen" ? "隨機生成" : st.q.s === "exam" ? "仿歷屆題型" + (st.q.t ? "｜" + st.q.t : "") : (st.q.u || st.q.w)}${st.q.t ? "｜" + st.q.t : ""}]</span></div>`;
     st.q.o.forEach((opt, oi) => {
       const div = document.createElement("div");
       div.className = "q-opt";
@@ -1026,7 +1037,7 @@ function initViz() {
   const host = document.getElementById("viz-host");
   if (!sel || !host || !window.VIZ) return;
   // 動畫名稱前綴就是所屬範圍，例如「初級 迴圈與複雜度」
-  const order = ["初級"], groups = {};
+  const order = ["初級", "識讀補充"], groups = {};
   VIZ.NAMES.forEach(([key, name]) => {
     const g = order.find(o => name.startsWith(o)) || "其他";
     (groups[g] = groups[g] || []).push([key, name]);
@@ -1036,7 +1047,7 @@ function initViz() {
     const og = document.createElement("optgroup"); og.label = g;
     groups[g].forEach(([key, name]) => {
       const o = document.createElement("option"); o.value = key;
-      o.textContent = name.replace(/^(初級)\s+/, "");
+      o.textContent = name.replace(/^(初級|識讀補充)\s+/, "");
       og.appendChild(o);
     });
     sel.appendChild(og);

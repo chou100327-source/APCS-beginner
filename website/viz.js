@@ -505,6 +505,11 @@
   };
   const NAMES = [
     ["complexity", "初級 迴圈次數直覺（雙層迴圈 n×n）"],
+    ["recursion", "識讀補充 遞迴：階乘呼叫堆疊"],
+    ["sort", "識讀補充 選擇排序"],
+    ["binary", "識讀補充 二分搜尋"],
+    ["stack", "識讀補充 堆疊：括號配對"],
+    ["queue", "識讀補充 佇列 queue（FIFO）"],
   ];
   window.VIZ = {
     NAMES,

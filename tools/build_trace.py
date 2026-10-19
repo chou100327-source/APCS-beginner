@@ -258,6 +258,7 @@ INPUTS = [
     ('x = float(input())\nprint(int(x)', "3.5"),
 ]
 PRE = [
+    ('if ______:', 'nums = [3, 9, 2]'),
     ('print(a == b)', 'a = 7\nb = 7.0\nc = "7"'),
     ('temp = x', 'x, y = 1, 2'),
     ('if 10 / x > 1 and x != 0:', 'x = 0'),
@@ -279,7 +280,7 @@ def sample_input(src):
     return None
 
 def main():
-    files = sorted(glob.glob(os.path.join(ROOT, "01-初級", "*.md")) + glob.glob(os.path.join(ROOT, "練習", "*.md")))
+    files = sorted(glob.glob(os.path.join(ROOT, "01-初級", "*.md")) + glob.glob(os.path.join(ROOT, "02-識讀補充", "*.md")) + glob.glob(os.path.join(ROOT, "練習", "*.md")))
     out, seen, skipped = {}, set(), 0
     for f in files:
         text = open(f, encoding="utf-8").read()
@@ -288,6 +289,8 @@ def main():
             key = fnv(src)
             if key in seen: continue
             seen.add(key)
+            if "______" in src:
+                skipped += 1; continue
             stdin = ""
             if re.search(r"\binput\s*\(|sys\.stdin", src):
                 stdin = sample_input(src)

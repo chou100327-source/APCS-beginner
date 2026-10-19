@@ -21,7 +21,7 @@ def esc_html(t):
 def pre(code):
     return '<pre class="q-code">' + html.escape(code, quote=False) + "</pre>"
 
-def add(unit, stem, _c, wrong, exp, exam=False, code=None, stdin="", **kw):
+def add(unit, stem, _c, wrong, exp, exam=False, code=None, stdin="", t=None, **kw):
     correct = kw.get("correct", _c)
     if code is not None:
         out = run(code, stdin)
@@ -34,7 +34,8 @@ def add(unit, stem, _c, wrong, exp, exam=False, code=None, stdin="", **kw):
     if correct in wrong or len(set(wrong)) != 3:
         PROBLEMS.append((stem[-60:], correct, wrong))
         return
-    Q.append(dict(w="初級", u=unit, s="exam" if exam else "bank", q=esc_html(stem) if code is None else stem,
+    extra = {"t": t} if t else {}
+    Q.append(dict(**extra, w="初級", u=unit, s="exam" if exam else "bank", q=esc_html(stem) if code is None else stem,
                   o=[esc_html(x) for x in [correct] + wrong], a=0, e=esc_html(exp)))
 
 U1, U2, U3, U4, U5, U6, U7 = ("01 輸入與輸出", "02 資料型態與變數", "03 算術運算", "04 邏輯運算",
@@ -238,6 +239,145 @@ add(U7, "執行後輸出什麼？", None, ["0 1 2 ", "1 2 3 ", "3 "],
 add(U7, "執行後 total 是多少？", None, ["12", "15", "9"],
     "i 從 1 開始；i = 3 時加 3；i = 5 時 break，迴圈直接結束，6 根本沒機會被加，所以 total 是 3。",
     exam=True, code='total = 0\nfor i in range(1, 7):\n    if i == 5:\n        break\n    if i % 3 == 0:\n        total += i\nprint(total)', correct="3")
+
+
+# ============================ 識讀補充 08~15 ============================
+U8, U9, U10, U11, U12, U13, U14, U15 = ("08 一維陣列與串列", "09 函式", "10 識讀題型技巧", "11 時間複雜度",
+                                      "12 遞迴", "13 排序演算法", "14 搜尋演算法", "15 堆疊與佇列")
+# ---- 08 陣列 ----
+add(U8, "執行後輸出什麼？", None, ["[1, 2, 3, 4]", "[3, 4, 5]", "[1, 2, 3]"],
+    "a[1:4] 取索引 1、2、3，對應 2、3、4（含頭不含尾）。", exam=True, t="追蹤",
+    code='a = [1, 2, 3, 4, 5]\nprint(a[1:4])', correct="[2, 3, 4]")
+add(U8, "執行後輸出什麼？", None, ["[3, 1, 2]", "[1, 2, 3]", "會噴錯"],
+    "sort() 原地排序但回傳 None，把 None 指派回 a，a 就成了 None。", exam=True, t="追蹤",
+    code='a = [3, 1, 2]\na = a.sort()\nprint(a)', correct="None")
+add(U8, "執行後輸出什麼？", None, ["[1, 2, 3]", "[9, 2, 3] [1, 2, 3]", "[1, 2, 3] [9, 2, 3]"],
+    "b = a 沒有複製，兩個名字指向同一個串列，改 b[0] 等於改 a[0]，所以兩個都是 [9, 2, 3]。", exam=True, t="追蹤",
+    code='a = [1, 2, 3]\nb = a\nb[0] = 9\nprint(a, b)', correct="[9, 2, 3] [9, 2, 3]")
+add(U8, "執行後輸出什麼？", None, ["[4, 2, 0]", "[5, 4, 3]", "[0, 2, 4]"],
+    "step = -2 從最後一個往前每隔一個：索引 5、3、1 對應 5、3、1。", t="追蹤",
+    code='a = [0, 1, 2, 3, 4, 5]\nprint(a[::-2])', correct="[5, 3, 1]")
+add(U8, "下列程式的功能是「把串列元素加總」，空格應填入？", "<code>total += x</code>", ["<code>total = x</code>", "<code>total -= x</code>", "<code>x += total</code>"],
+    "累加要把每個元素加進 total：total += x。total = x 只會留下最後一個；x += total 改的是迴圈變數。\n（程式：total = 0；for x in nums: ____ ）".replace("\n", " "),
+    exam=True, t="填空")
+add(U8, "想複製串列 a 成為獨立的 b（改 b 不影響 a），下列哪個「不正確」？", "<code>b = a</code>", ["<code>b = a[:]</code>", "<code>b = a.copy()</code>", "<code>b = list(a)</code>"],
+    "b = a 只是多一個名字；其他三種都會建立新串列。", exam=True, t="除錯")
+add(U8, "<code>a = [4, 9, 2]</code>，執行 <code>for x in a: x = x * 2</code> 之後，<code>a</code> 是？", "[4, 9, 2]", ["[8, 18, 4]", "[8, 9, 2]", "[4, 9, 4]"],
+    "x 只是複製出來的值，改 x 不會改到串列；要改串列必須用索引 a[i] = a[i] * 2。", exam=True, t="除錯")
+add(U8, "建立 2 列 3 行、全為 0 的二維串列，並只把第 0 列第 1 行設為 5，下列哪個寫法的結果是 <code>[[0, 5, 0], [0, 0, 0]]</code>？", "<code>g = [[0] * 3 for _ in range(2)]</code>，再 <code>g[0][1] = 5</code>", ["<code>g = [[0] * 3] * 2</code>，再 <code>g[0][1] = 5</code>", "<code>g = [0] * 6</code>，再 <code>g[0][1] = 5</code>", "<code>g = [[0] * 2 for _ in range(3)]</code>，再 <code>g[0][1] = 5</code>"],
+    "[[0]*3]*2 的兩列是同一個串列，改一格兩列都變；生成式讓每列獨立。", exam=True, t="除錯")
+add(U8, "執行後輸出什麼？", None, ["[4, 9, 2, 7]", "[7, 4, 9, 2]", "[4, 9, 7, 2]"],
+    "insert(1, 7) 在索引 1 放入 7：[4, 7, 9, 2]。", t="追蹤",
+    code='a = [4, 9, 2]\na.insert(1, 7)\nprint(a)', correct="[4, 7, 9, 2]")
+
+# ---- 09 函式 ----
+add(U9, "執行後輸出什麼？", None, ["5", "7", "12"],
+    "f(3) = 6，f(2) = 4，相加 10。", exam=True, t="追蹤",
+    code='def f(x):\n    return x * 2\nprint(f(3) + f(2))', correct="10")
+add(U9, "執行後輸出什麼？", None, ["hi", "hi hi", "None"],
+    "hello() 呼叫時印出 hi，函式沒有 return 所以 x 是 None，接著印出 None。所以輸出 hi None（兩個 print 因為 end=" " 在同一行）。", exam=True, t="追蹤",
+    code='def hello():\n    print("hi", end=" ")\nx = hello()\nprint(x)', correct="hi None")
+add(U9, "執行後輸出什麼？", None, ["20", "10 20", "10 10"],
+    "函式裡的 x = 20 建立了區域變數，不影響全域的 x，所以外面還是 10；函式裡印 20。輸出 20 10。", exam=True, t="追蹤",
+    code='x = 10\ndef f():\n    x = 20\n    print(x, end=" ")\nf()\nprint(x)', correct="20 10")
+add(U9, "執行後輸出什麼？", None, ["0", "1", "會噴錯"],
+    "有 global 宣告，函式裡的 count += 1 改的是全域變數；呼叫兩次得 2，所以輸出 2。", exam=True, t="追蹤",
+    code='count = 0\ndef inc():\n    global count\n    count += 1\ninc()\ninc()\nprint(count)', correct="2")
+add(U9, "執行後輸出什麼？", None, ["[5]", "[1]", "None"],
+    "串列傳進函式是共用同一個，函式裡 append 會影響外面的 nums。", exam=True, t="追蹤",
+    code='def add_one(a):\n    a.append(1)\nnums = [5]\nadd_one(nums)\nprint(nums)', correct="[5, 1]")
+add(U9, "下列函式想回傳兩數中較大的，但有 bug，哪一行有問題？<pre class=\"q-code\">def bigger(a, b):\n    if a > b:\n        print(a)\n    else:\n        print(b)\nx = bigger(3, 8) + 1</pre>", "函式用 print 而不是 return，x 會是 None 而無法加 1", ["if a > b 應改為 if a < b", "else 後面不能接冒號", "參數不能叫 a、b"],
+    "print 只是顯示，沒有把值交給呼叫端；bigger(3, 8) 的結果是 None，None + 1 會 TypeError。", exam=True, t="除錯")
+add(U9, "函式裡想修改全域變數 total，卻沒寫 <code>global total</code> 就執行 <code>total += 5</code>，會怎樣？", "UnboundLocalError", ["total 增加 5", "total 不變，也不報錯", "SyntaxError"],
+    "沒有 global，total += 5 讓 Python 當成區域變數，卻在賦值前就讀取，會出現 UnboundLocalError。", t="除錯")
+add(U9, "下列函式用來算 n 的階乘（n!），空格應填入？<pre class=\"q-code\">def fact(n):\n    r = 1\n    for i in range(1, n + 1):\n        ____\n    return r</pre>", "<code>r *= i</code>", ["<code>r += i</code>", "<code>r = i</code>", "<code>i *= r</code>"],
+    "連乘要把每個 i 乘進 r；+= 是加總；r = i 只留最後一個。", exam=True, t="填空")
+
+# ---- 10 題型技巧 ----
+add(U10, "執行後輸出什麼？", None, ["0 3", "-1 4", "3 3"],
+    "追蹤：a=5,b=2 → a=3,b=3 → a=0,b=4；a > 0 不成立，結束，輸出 0 4。", exam=True, t="追蹤",
+    code='a = 5\nb = 2\nwhile a > 0:\n    a -= b\n    b += 1\nprint(a, b)', correct="0 4")
+add(U10, "判斷質數的函式對哪個輸入會得到「錯誤」結果？<pre class=\"q-code\">def is_prime(n):\n    for d in range(2, n):\n        if n % d == 0:\n            return False\n    return True</pre>", "1", ["7", "9", "13"],
+    "n = 1 時 range(2, 1) 是空的，直接 return True，但 1 不是質數；缺少 n < 2 的處理。", exam=True, t="除錯")
+add(U10, "找最大值的程式 <code>best = nums[0]</code>，<code>for x in nums:</code>，<code>    if ____: best = x</code>，空格應填入？", "<code>x > best</code>", ["<code>x < best</code>", "<code>x == best</code>", "<code>x != 0</code>"],
+    "比現在的擂主大就換人；x < best 會找到最小值。", exam=True, t="填空")
+add(U10, "每次可以走 1 階或 2 階，走到第 6 階有幾種走法？（1 階：1 種，2 階：2 種，之後每階 = 前兩階相加）", "13", ["8", "11", "21"],
+    "1、2、3、5、8、13：第 6 階是 13 種。", exam=True, t="計算邏輯")
+add(U10, "下列哪一種做法最能有效「找出程式的 bug」？", "用範例輸入跑一遍，再用最小值、空資料、剛好等於邊界值等輸入測試", ["把整段程式重新寫一遍", "只看一般的輸入", "只看變數名稱是否好懂"],
+    "除錯要靠「會讓它出錯的輸入」：先確認一般情況，再測邊界。", exam=True, t="除錯")
+
+# ---- 11 時間複雜度 ----
+add(U11, "執行後輸出什麼？", None, ["8", "12", "24"],
+    "雙層迴圈總共 4 × 4 = 16 次。", exam=True, t="效能",
+    code='n = 4\nc = 0\nfor i in range(n):\n    for j in range(n):\n        c += 1\nprint(c)', correct="16")
+add(U11, "執行後輸出什麼？", None, ["7", "9", "10"],
+    "每次把 n 砍半：256 → 128 → 64 → 32 → 16 → 8 → 4 → 2 → 1，共 8 次。", exam=True, t="效能",
+    code='n = 256\nc = 0\nwhile n > 1:\n    n //= 2\n    c += 1\nprint(c)', correct="8")
+add(U11, "輸入規模 n 變成 3 倍，O(n²) 演算法的執行時間大約變成幾倍？", "9 倍", ["3 倍", "6 倍", "27 倍"],
+    "時間與 n² 成正比，n 變 3 倍時間變 3² = 9 倍。", exam=True, t="效能")
+add(U11, "下列複雜度，哪一個成長最快（n 很大時最慢）？", "O(2ⁿ)", ["O(n²)", "O(n log n)", "O(log n)"],
+    "指數成長最快，其次是 n²、n log n、log n。", exam=True, t="效能")
+add(U11, "要算 1 + 2 + … + n，哪種寫法的時間複雜度最低？", "<code>n * (n + 1) // 2</code>", ["<code>for i in range(1, n + 1): total += i</code>", "<code>sum(range(1, n + 1))</code>", "雙層迴圈每一對相加"],
+    "公式只算一次是 O(1)；迴圈與 sum(range) 都是 O(n)。", exam=True, t="效能")
+add(U11, "某題 N 的上限是 10⁵，下列哪種複雜度的做法通常會超時？", "O(n²)", ["O(n)", "O(n log n)", "O(log n)"],
+    "10⁵ 的平方是 10¹⁰，遠超過 1 秒能跑的 10⁷~10⁸ 次。", exam=True, t="效能")
+
+# ---- 12 遞迴 ----
+add(U12, "執行後輸出什麼？", None, ["10", "6", "12"],
+    "f(4) = 4 × f(3) = 4 × 3 × f(2) = 4 × 3 × 2 × f(1) = 24。", exam=True, t="追蹤",
+    code='def f(n):\n    if n <= 1:\n        return 1\n    return n * f(n - 1)\nprint(f(4))', correct="24")
+add(U12, "執行後輸出什麼？", None, ["3 2 1", "1 2 3", "3 3 3"],
+    "先印再遞迴：每層先印自己的 n，所以依序印 3、2、1。", exam=True, t="追蹤",
+    code='def p(n):\n    if n == 0:\n        return\n    print(n, end=" ")\n    p(n - 1)\np(3)', correct="3 2 1 ")
+add(U12, "執行後輸出什麼？", None, ["3 2 1 ", "0 1 2 3 ", "3 3 3 "],
+    "先遞迴再印：先走到最深層，回來時才依序印 1、2、3。", exam=True, t="追蹤",
+    code='def p(n):\n    if n == 0:\n        return\n    p(n - 1)\n    print(n, end=" ")\np(3)', correct="1 2 3 ")
+add(U12, "費氏數列 fib(0)=0、fib(1)=1、fib(n)=fib(n-1)+fib(n-2)，fib(7) 的值是？", "13", ["8", "21", "11"],
+    "0, 1, 1, 2, 3, 5, 8, 13：fib(7) = 13。", exam=True, t="計算邏輯")
+add(U12, "下列遞迴函式有什麼問題？<pre class=\"q-code\">def total(n):\n    return n + total(n - 1)</pre>", "沒有終止條件，會無窮遞迴（RecursionError）", ["n 不能是負數", "不能用 return", "參數名稱不能叫 n"],
+    "每次呼叫都會再呼叫自己，永遠不會停下來。需要加 if n == 0: return 0。", exam=True, t="除錯")
+add(U12, "遞迴求 n!，空格應填入？<pre class=\"q-code\">def fact(n):\n    if n <= 1:\n        return 1\n    return ____</pre>", "<code>n * fact(n - 1)</code>", ["<code>n + fact(n - 1)</code>", "<code>fact(n) * n</code>", "<code>n * fact(n + 1)</code>"],
+    "n! = n × (n-1)!；fact(n) 會直接呼叫自己無窮遞迴；fact(n+1) 越來越遠離終止條件。", exam=True, t="填空")
+
+# ---- 13 排序 ----
+add(U13, "選擇排序對 [4, 3, 1, 2] 做完第一輪後，串列是？", "[1, 3, 4, 2]", ["[3, 1, 2, 4]", "[1, 2, 3, 4]", "[3, 4, 1, 2]"],
+    "第一輪找最小的 1（索引 2），與索引 0 的 4 交換：[1, 3, 4, 2]。", exam=True, t="追蹤")
+add(U13, "氣泡排序對 [4, 3, 1, 2] 做完第一輪後，串列是？", "[3, 1, 2, 4]", ["[1, 3, 4, 2]", "[1, 2, 3, 4]", "[3, 4, 1, 2]"],
+    "第一輪最大的 4 一路交換到最後：[3, 1, 2, 4]。", exam=True, t="追蹤")
+add(U13, "插入排序對 [4, 3, 1, 2]，做完 i = 1、i = 2 兩輪後（前三個排好），串列是？", "[1, 3, 4, 2]", ["[3, 4, 1, 2]", "[1, 2, 3, 4]", "[3, 1, 2, 4]"],
+    "i=1：把 3 插到 4 前 → [3,4,1,2]；i=2：把 1 插到最前 → [1,3,4,2]。", exam=True, t="追蹤")
+add(U13, "n 個元素做三種基本排序（選擇、氣泡、插入），最差情況的時間複雜度都是？", "O(n²)", ["O(n)", "O(n log n)", "O(log n)"],
+    "它們都是雙層迴圈的 O(n²) 排序法；內建 sort 才是 O(n log n)。", exam=True, t="效能")
+add(U13, "資料「幾乎已經排好」時，哪個基本排序最快？", "插入排序", ["選擇排序", "三者一樣快", "無法判斷"],
+    "插入排序遇到已排好的部分幾乎不用搬動，接近 O(n)。", t="效能")
+add(U13, "氣泡排序內層迴圈應該是 <code>for j in range(____)</code>，第 i 輪（從 0 起算）空格應填入？", "<code>n - 1 - i</code>", ["<code>n</code>", "<code>i</code>", "<code>n + i</code>"],
+    "第 i 輪後最後 i 個位置已排好，不必再比；range(n) 會讓 a[j+1] 超出索引。", exam=True, t="填空")
+
+# ---- 14 搜尋 ----
+add(U14, "在 [1, 3, 5, 7, 9, 11, 13] 中二分搜尋 11，第一次比較的是哪個值？（lo=0、hi=6）", "7", ["5", "9", "11"],
+    "mid = (0 + 6) // 2 = 3，a[3] = 7。", exam=True, t="追蹤")
+add(U14, "n 筆已排序資料，二分搜尋最多大約要比較幾次？", "約 log₂n 次", ["約 n 次", "約 n² 次", "固定 1 次"],
+    "每次砍半，所以是對數等級。", exam=True, t="效能")
+add(U14, "二分搜尋中 <code>a[mid] < target</code>，應該怎麼更新？", "<code>lo = mid + 1</code>", ["<code>hi = mid - 1</code>", "<code>lo = mid</code>", "<code>hi = mid</code>"],
+    "目標在右半邊，且 mid 已比過可排除，所以 lo = mid + 1。", exam=True, t="填空")
+add(U14, "二分搜尋的程式 <code>mid = (lo + hi) / 2</code> 有什麼 bug？", "/ 得到小數，不能當索引，要用 //", ["括號不能加", "lo 和 hi 不能相加", "mid 不能是整數"],
+    "串列索引必須是整數，要用整除 //。", exam=True, t="除錯")
+add(U14, "資料沒排序，要找某個值是否存在，應該用？", "線性搜尋", ["二分搜尋", "兩者都可以", "兩者都不行"],
+    "二分搜尋必須資料已排序；沒排序就用線性搜尋（或先排序）。", exam=True, t="計算邏輯")
+
+# ---- 15 堆疊佇列 ----
+add(U15, "動作：push 5、push 8、pop、push 2、push 9、pop、pop，最後堆疊內容是？（左為底、右為頂）", "[5]", ["[5, 2]", "[5, 8]", "[]"],
+    "[5] → [5,8] → [5] → [5,2] → [5,2,9] → [5,2] → [5]。", exam=True, t="追蹤")
+add(U15, "依序 enqueue 1、2、3 後連續 dequeue 兩次，取出的順序是？", "1、2", ["3、2", "2、3", "3、1"],
+    "佇列先進先出。", exam=True, t="追蹤")
+add(U15, "依序 push 1、2、3 後，把全部 pop 出來的順序是？", "3、2、1", ["1、2、3", "2、1、3", "1、3、2"],
+    "堆疊後進先出。", exam=True, t="追蹤")
+add(U15, "用堆疊檢查括號是否配對，字串 <code>\"([)]\"</code> 的結果是？", "不合法", ["合法", "還要看長度", "無法判斷"],
+    "讀到 ) 時頂端是 [，對不上，所以不合法。", exam=True, t="計算邏輯")
+add(U15, "下列哪個是「佇列」的特性？", "先進先出", ["後進先出", "隨機取出", "只能從中間取"],
+    "Queue = First In, First Out。", exam=True, t="計算邏輯")
+add(U15, "用 Python 串列當堆疊時，「拿走頂端」應該用？", "<code>s.pop()</code>", ["<code>s.pop(0)</code>", "<code>s.remove(0)</code>", "<code>s.insert(0, x)</code>"],
+    "pop() 預設拿走最後一個（頂端）；pop(0) 拿走第一個（那是佇列的行為）。", exam=True, t="填空")
 
 if PROBLEMS:
     for p_ in PROBLEMS: print("PROBLEM", p_)

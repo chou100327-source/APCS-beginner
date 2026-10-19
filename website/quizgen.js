@@ -23,8 +23,15 @@
     const out = [String(correct)];
     for (const w of wrongs) { const s = String(w); if (!out.includes(s)) out.push(s); if (out.length === 4) break; }
     let k = 1;
+    const isList = /^\[.*\]$/.test(String(correct));
+    const nums = isList ? String(correct).slice(1, -1).split(",").map(x => x.trim()).filter(Boolean).map(Number) : [];
     while (out.length < 4) {
-      const s = fill ? String(fill(k)) : String(Number(correct) + k * (k % 2 ? 1 : -1));
+      let s;
+      if (fill) s = String(fill(k));
+      else if (isList) {
+        if (!nums.length) s = "[" + (k % 2 ? k : -k) + "]";
+        else { const v = nums.slice(); const i = k % v.length; v[i] = v[i] + k * (k % 2 ? 1 : -1); s = "[" + v.join(", ") + "]"; }
+      } else s = String(Number(correct) + k * (k % 2 ? 1 : -1));
       if (!out.includes(s)) out.push(s);
       k++;
       if (k > 30) break;
@@ -393,6 +400,173 @@
     const src = `r = 1\nfor i in range(1, ${n + 1}):\n    r *= i\nprint(r)`;
     return mk(U7, code(src) + "輸出是？", opts(t, [t / n, t * (n + 1), t + n, (n * (n + 1)) / 2].filter(v => v !== t)),
       `連乘 1 × 2 × … × ${n} = ${t}（${n} 的階乘）。累積變數 r 要從 1 開始，不能是 0。`, src);
+  } });
+
+
+  /* ======================= 識讀補充 08~15 ======================= */
+  const U8 = "08 一維陣列與串列", U9 = "09 函式", U11 = "11 時間複雜度", U12 = "12 遞迴", U13 = "13 排序演算法", U14 = "14 搜尋演算法", U15 = "15 堆疊與佇列";
+  const L = a => "[" + a.join(", ") + "]";
+  const distinctList = (n, lo, hi) => { const s = new Set(); while (s.size < n) s.add(rint(lo, hi)); return [...s]; };
+
+  T.push({ u: U8, f() {
+    const a = distinctList(8, 1, 60), n = a.length;
+    const form = rint(0, 4);
+    let expr, val;
+    if (form === 0) { const i = rint(0, 3), j = rint(i + 2, 7); expr = `a[${i}:${j}]`; val = a.slice(i, j); }
+    else if (form === 1) { const k = rint(2, 4); expr = `a[::${k}]`; val = a.filter((_, i) => i % k === 0); }
+    else if (form === 2) { expr = `a[::-1]`; val = a.slice().reverse(); }
+    else if (form === 3) { const k = rint(2, 4); expr = `a[-${k}:]`; val = a.slice(n - k); }
+    else { const k = rint(1, 3); expr = `a[:${k}] + a[-${k}:]`; val = a.slice(0, k).concat(a.slice(n - k)); }
+    const correct = L(val);
+    const wrong = [L(val.slice(0, -1)), L(val.slice().reverse()), L(a.slice(0, val.length)), L(val.concat([a[0]]))];
+    const src = `a = ${L(a)}\nprint(${expr})`;
+    return mk(U8, code(src) + "輸出是？", opts(correct, wrong.filter(v => v !== correct), k => L(val.map(x => x + k))),
+      `切片含頭不含尾；a 有 ${n} 個元素，索引 0 ~ ${n - 1}，負索引 -1 是最後一個。${expr} 的結果是 ${correct}。`, src);
+  } });
+
+  T.push({ u: U8, f() {
+    let a = distinctList(4, 1, 30);
+    const ops = [];
+    const lines = [`a = ${L(a)}`];
+    const n = rint(3, 4);
+    for (let k = 0; k < n; k++) {
+      const op = pick(["append", "insert", "pop", "pop0", "remove"]);
+      if (op === "append") { const v = rint(31, 60); a.push(v); lines.push(`a.append(${v})`); }
+      else if (op === "insert") { const i = rint(0, a.length - 1), v = rint(61, 90); a.splice(i, 0, v); lines.push(`a.insert(${i}, ${v})`); }
+      else if (op === "pop" && a.length > 2) { a.pop(); lines.push(`a.pop()`); }
+      else if (op === "pop0" && a.length > 2) { a.shift(); lines.push(`a.pop(0)`); }
+      else if (op === "remove" && a.length > 2) { const v = pick(a); a.splice(a.indexOf(v), 1); lines.push(`a.remove(${v})`); }
+      else { const v = rint(31, 60); a.push(v); lines.push(`a.append(${v})`); }
+    }
+    lines.push("print(a)");
+    const correct = L(a);
+    const wrong = [L(a.slice().reverse()), L(a.slice(1)), L(a.slice(0, -1)), L(a.slice().sort((x, y) => x - y))];
+    const src = lines.join("\n");
+    return mk(U8, code(src) + "輸出是？", opts(correct, wrong.filter(v => v !== correct), k => L(a.map(x => x + k))),
+      `依序執行每個動作並記錄串列：append 加在尾端、insert(i, x) 插在索引 i、pop() 拿走最後一個、pop(i) 拿走第 i 個、remove(x) 移除第一個等於 x 的。最後是 ${correct}。`, src);
+  } });
+
+  T.push({ u: U9, f() {
+    const k = rint(2, 5), c0 = rint(1, 6), x = rint(1, 5);
+    const forms = [
+      [`def f(x):\n    return x * ${k} + ${c0}\nprint(f(${x}))`, x * k + c0, "先乘後加"],
+      [`def f(x):\n    return x * ${k} + ${c0}\nprint(f(f(${x})))`, (x * k + c0) * k + c0, "由內往外：先算 f(" + x + ") 再拿結果代入"],
+      [`def f(a, b=${k}):\n    return a + b\nprint(f(${x}), f(${x}, ${c0}))`, null, "沒給 b 就用預設值"],
+      [`def f(x):\n    x = x + ${k}\n    return x\nv = ${x}\nf(v)\nprint(v)`, x, "函式裡的 x 是區域變數，外面的 v 不變；而且 f(v) 的回傳值沒有被接住"],
+      [`def f(x):\n    print(x)\nr = f(${x})\nprint(r)`, null, "沒有 return 回傳 None"],
+    ];
+    const [src, val, why] = pick(forms);
+    let correct, wrong;
+    if (src.includes("b=")) { correct = `${x + k} ${x + c0}`; wrong = [`${x + k} ${x + k}`, `${x} ${x + c0}`, `${x + k} ${c0}`, `${x + c0} ${x + k}`]; }
+    else if (src.includes("r = f")) { correct = `${x} None`; wrong = [`${x} ${x}`, `None None`, `None ${x}`, `${x}`]; }
+    else { correct = String(val); wrong = [val + k, val - c0, x, val * 2, src.includes("f(f(") ? x * k + c0 : val + 1]; }
+    const py = src.includes("r = f") ? src.replace("print(x)", 'print(x, end=" ")').replace("print(r)", "print(r)") : src;
+    return mk(U9, code(src) + "輸出是？" + (src.includes("r = f") ? "（兩個 print 的輸出之間用空白隔開，這裡以空白連成一行）" : ""),
+      opts(correct, wrong.filter(v => String(v) !== correct)), `${why}。結果：${correct}。`, py);
+  } });
+
+  T.push({ u: U11, f() {
+    const kind = pick(["n", "n2", "n3"]), mult = rint(2, 5);
+    const power = kind === "n" ? 1 : kind === "n2" ? 2 : 3;
+    const label = kind === "n" ? "O(n)" : kind === "n2" ? "O(n²)" : "O(n³)";
+    const correct = mult ** power;
+    const wrong = [mult, mult * 2, mult ** 2, mult ** 3, mult + power, mult * power].filter(v => v !== correct);
+    return mk(U11, `某演算法的時間複雜度是 ${label}。如果輸入規模 n 變成原來的 ${mult} 倍，執行時間大約變成原來的幾倍？`,
+      opts(correct, wrong), `時間與 n${power === 1 ? "" : "^" + power} 成正比：${mult}${power === 1 ? "" : "^" + power} = ${correct} 倍。`, `print(${mult} ** ${power})`);
+  } });
+
+  T.push({ u: U11, f() {
+    const n = rint(3, 9);
+    const form = rint(0, 3);
+    let src, val, exp, wrong;
+    if (form === 0) { src = `c = 0\nfor i in range(${n}):\n    c += 1\nfor j in range(${n}):\n    c += 1\nprint(c)`; val = 2 * n; exp = `兩個迴圈並排是相加：${n} + ${n} = ${val}（複雜度仍是 O(n)）。`; wrong = [n * n, n, 2 * n + 1, n + 1]; }
+    else if (form === 1) { const m = rint(2, 6); src = `c = 0\nfor i in range(${n}):\n    for j in range(${m}):\n        c += 1\nprint(c)`; val = n * m; exp = `巢狀相乘：${n} × ${m} = ${val}。`; wrong = [n + m, n * m + n, (n - 1) * m, n * (m - 1)]; }
+    else if (form === 2) { src = `c = 0\nfor i in range(${n}):\n    for j in range(i + 1):\n        c += 1\nprint(c)`; val = n * (n + 1) / 2; exp = `內層次數 1、2、…、${n}，總和 ${val}。`; wrong = [n * n, n * (n - 1) / 2, n * (n + 1), val + 1]; }
+    else { const m = 2 ** rint(3, 8); src = `n = ${m}\nc = 0\nwhile n > 1:\n    n //= 2\n    c += 1\nprint(c)`; val = Math.log2(m); exp = `每輪砍半：${m} → … → 1，共砍 log₂${m} = ${val} 次。`; wrong = [val + 1, val - 1, m / 2, m]; }
+    return mk(U11, code(src) + "輸出是？（這也是「最關鍵那一行」的執行次數）", opts(val, wrong.filter(v => v !== val)), exp, src);
+  } });
+
+  T.push({ u: U12, f() {
+    const kind = pick(["fact", "sum", "fib", "up", "down", "pow"]);
+    let src, val, exp, wrong;
+    if (kind === "fact") { const n = rint(3, 6); let r = 1; for (let i = 2; i <= n; i++) r *= i; src = `def f(n):\n    if n <= 1:\n        return 1\n    return n * f(n - 1)\nprint(f(${n}))`; val = r; exp = `f(${n}) = ${n} × f(${n - 1}) …… 一直乘到 1：${r}。`; wrong = [r / n, n * (n + 1) / 2, r + n, r * n]; }
+    else if (kind === "sum") { const n = rint(3, 8); src = `def t(n):\n    if n == 0:\n        return 0\n    return n + t(n - 1)\nprint(t(${n}))`; val = n * (n + 1) / 2; exp = `t(${n}) = ${n} + t(${n - 1}) = … = 1 + 2 + … + ${n} = ${val}。`; wrong = [val - n, val + n, n * n, val + 1]; }
+    else if (kind === "fib") { const n = rint(5, 9); const f = [0, 1]; for (let i = 2; i <= n; i++) f.push(f[i - 1] + f[i - 2]); src = `def fib(n):\n    if n <= 1:\n        return n\n    return fib(n - 1) + fib(n - 2)\nprint(fib(${n}))`; val = f[n]; exp = `數列 ${f.join("、")}：fib(${n}) = ${val}。`; wrong = [f[n - 1], f[n + 1] || f[n] + 1, f[n] + 1, f[n - 2]]; }
+    else if (kind === "pow") { const x = rint(2, 4), n = rint(2, 5); src = `def p(x, n):\n    if n == 0:\n        return 1\n    return x * p(x, n - 1)\nprint(p(${x}, ${n}))`; val = x ** n; exp = `p(${x}, ${n}) = ${x}^${n} = ${val}。`; wrong = [x * n, x ** (n - 1), x ** (n + 1), x + n]; }
+    else { const n = rint(3, 5), up = kind === "up"; src = `def p(n):\n    if n == 0:\n        return\n    ${up ? "p(n - 1)\n    print(n, end=\" \")" : "print(n, end=\" \")\n    p(n - 1)"}\np(${n})`;
+      const seq = []; for (let i = 1; i <= n; i++) seq.push(i); const cor = (up ? seq : seq.slice().reverse()).join(" ") + " ";
+      const oth = (up ? seq.slice().reverse() : seq).join(" ") + " ";
+      return mk(U12, code(src) + "輸出是？（每個數字後面有一個空白）", opts(cor, [oth, Array(n).fill(n).join(" ") + " ", [0, ...seq].join(" ") + " ", seq.slice(1).join(" ") + " "].filter(v => v !== cor)),
+        up ? `先遞迴再印：先走到最深層 p(0)，回來時才依序印 1、2、…、${n}。` : `先印再遞迴：每一層先印自己的 n，所以由 ${n} 印到 1。`, src); }
+    return mk(U12, code(src) + "輸出是？", opts(val, wrong.filter(v => v !== val)), exp, src);
+  } });
+
+  T.push({ u: U13, f() {
+    const a = distinctList(5, 1, 9);
+    const algo = pick(["bubble", "select", "insert"]);
+    const k = rint(1, 2);        // 做完第 k 輪
+    const b = a.slice(); const n = b.length;
+    if (algo === "bubble") { for (let i = 0; i < k; i++) for (let j = 0; j < n - 1 - i; j++) if (b[j] > b[j + 1]) { const t = b[j]; b[j] = b[j + 1]; b[j + 1] = t; } }
+    else if (algo === "select") { for (let i = 0; i < k; i++) { let m = i; for (let j = i + 1; j < n; j++) if (b[j] < b[m]) m = j; const t = b[i]; b[i] = b[m]; b[m] = t; } }
+    else { for (let i = 1; i <= k; i++) { const key = b[i]; let j = i - 1; while (j >= 0 && b[j] > key) { b[j + 1] = b[j]; j--; } b[j + 1] = key; } }
+    const names = { bubble: "氣泡排序", select: "選擇排序", insert: "插入排序" };
+    const other = a.slice().sort((x, y) => x - y);
+    const wrong = [];
+    ["bubble", "select", "insert"].filter(z => z !== algo).forEach(z => { const c2 = a.slice(); const nn = c2.length;
+      if (z === "bubble") { for (let i = 0; i < k; i++) for (let j = 0; j < nn - 1 - i; j++) if (c2[j] > c2[j + 1]) { const t = c2[j]; c2[j] = c2[j + 1]; c2[j + 1] = t; } }
+      else if (z === "select") { for (let i = 0; i < k; i++) { let m = i; for (let j = i + 1; j < nn; j++) if (c2[j] < c2[m]) m = j; const t = c2[i]; c2[i] = c2[m]; c2[m] = t; } }
+      else { for (let i = 1; i <= k; i++) { const key = c2[i]; let j = i - 1; while (j >= 0 && c2[j] > key) { c2[j + 1] = c2[j]; j--; } c2[j + 1] = key; } }
+      wrong.push(L(c2)); });
+    wrong.push(L(other), L(a));
+    const idxNote = algo === "bubble" ? `氣泡：每輪把目前最大的換到最後面。` : algo === "select" ? `選擇：每輪找出剩下最小的，換到最前面。` : `插入：每輪把下一個元素插進前面已排好的部分。`;
+    const pyA = JSON.stringify(a).replace(/,/g, ", ");
+    const py = algo === "bubble"
+      ? `a = ${pyA}\nn = len(a)\nfor i in range(${k}):\n    for j in range(n - 1 - i):\n        if a[j] > a[j + 1]:\n            a[j], a[j + 1] = a[j + 1], a[j]\nprint(a)`
+      : algo === "select"
+      ? `a = ${pyA}\nn = len(a)\nfor i in range(${k}):\n    m = i\n    for j in range(i + 1, n):\n        if a[j] < a[m]:\n            m = j\n    a[i], a[m] = a[m], a[i]\nprint(a)`
+      : `a = ${pyA}\nfor i in range(1, ${k + 1}):\n    key = a[i]\n    j = i - 1\n    while j >= 0 and a[j] > key:\n        a[j + 1] = a[j]\n        j -= 1\n    a[j + 1] = key\nprint(a)`;
+    return mk(U13, `用${names[algo]}對 ${L(a)} 由小到大排序，做完第 ${k} 輪後，串列是？`, opts(L(b), wrong.filter(v => v !== L(b))),
+      `${idxNote}做完第 ${k} 輪：${L(b)}。`, py);
+  } });
+
+  T.push({ u: U14, f() {
+    const n = pick([7, 9, 11, 15]);
+    const a = distinctList(n, 1, 99).sort((x, y) => x - y);
+    const idx = rint(0, n - 1), t = a[idx];
+    let lo = 0, hi = n - 1, steps = 0; const mids = [];
+    while (lo <= hi) { const mid = Math.floor((lo + hi) / 2); steps++; mids.push(a[mid]); if (a[mid] === t) break; if (a[mid] < t) lo = mid + 1; else hi = mid - 1; }
+    const askFirst = pick([true, false]);
+    const py = `a = ${JSON.stringify(a).replace(/,/g, ", ")}\nt = ${t}\nlo, hi = 0, len(a) - 1\nc = 0\nm0 = None\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    c += 1\n    if m0 is None:\n        m0 = a[mid]\n    if a[mid] == t:\n        break\n    if a[mid] < t:\n        lo = mid + 1\n    else:\n        hi = mid - 1\nprint(${askFirst ? "m0" : "c"})`;
+    if (askFirst) {
+      const correct = mids[0];
+      return mk(U14, `在已排序的 ${L(a)} 中用二分搜尋找 ${t}。（lo = 0、hi = ${n - 1}，mid = (lo + hi) // 2）第一次比較的是哪個值？`,
+        opts(correct, [a[Math.floor(n / 2) - 1], a[Math.floor(n / 2) + 1], a[0], a[n - 1], t].filter(v => v !== correct), k => correct + k),
+        `mid = (0 + ${n - 1}) // 2 = ${Math.floor((n - 1) / 2)}，第一次比較的是 a[${Math.floor((n - 1) / 2)}] = ${correct}。`, py);
+    }
+    return mk(U14, `在已排序的 ${L(a)} 中用二分搜尋找 ${t}（lo = 0、hi = ${n - 1}，mid = (lo + hi) // 2），總共會比較幾次才找到？`,
+      opts(steps, [steps + 1, steps - 1, idx + 1, n].filter(v => v !== steps && v > 0)),
+      `依序比較的值：${mids.join(" → ")}，共 ${steps} 次。（線性搜尋會需要 ${idx + 1} 次。）`, py);
+  } });
+
+  T.push({ u: U15, f() {
+    const stack = pick([true, false]);
+    const items = []; const lines = []; const cur = [];
+    const n = rint(5, 7); let nextV = rint(1, 5);
+    for (let i = 0; i < n; i++) {
+      if (cur.length > 0 && Math.random() < 0.4) {
+        if (stack) { cur.pop(); lines.push("pop"); } else { cur.shift(); lines.push("dequeue"); }
+      } else { cur.push(nextV); lines.push((stack ? "push " : "enqueue ") + nextV); nextV += rint(1, 3); }
+    }
+    const correct = L(cur);
+    const wrong = [L(cur.slice().reverse()), L(stack ? cur.slice(1) : cur.slice(0, -1)), L(cur.slice(0, -1)), L([])];
+    const codeLines = stack ? ["s = []"] : ["from collections import deque", "q = deque()"];
+    lines.forEach(l => { const [op, v] = l.split(" ");
+      if (op === "push") codeLines.push(`s.append(${v})`); else if (op === "pop") codeLines.push("s.pop()");
+      else if (op === "enqueue") codeLines.push(`q.append(${v})`); else codeLines.push("q.popleft()"); });
+    codeLines.push(stack ? "print(s)" : "print(list(q))");
+    return mk(U15, `${stack ? "堆疊（左為底、右為頂）" : "佇列（左為前、右為後）"}一開始是空的，依序執行：${lines.join("、")}。最後內容是？`,
+      opts(correct, wrong.filter(v => v !== correct)),
+      stack ? "堆疊後進先出：pop 拿走最後放進去的。" : "佇列先進先出：dequeue 拿走最前面（最早進來的）。", codeLines.join("\n"));
   } });
 
   /* ---------- 對外介面 ---------- */
